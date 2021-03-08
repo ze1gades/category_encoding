@@ -1,12 +1,15 @@
 import pandas as pd
 import importlib
 import inspect
+import json
+from tqdm._tqdm_notebook import tqdm
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
-import metrics
+from category_encoding import metrics
 
 
 def update_data_config(data_configs):
+
     for data in data_configs:
         if 'name' not in data:
             if 'path' not in data:
@@ -22,6 +25,7 @@ def update_data_config(data_configs):
             data['y'] = data['df'][data['target_col']]
 
 def init_transformer(encoder_config, cat_cols):
+    
     if isinstance(encoder_config['encoder_cls'], str):
         module_str, cls_name = encoder_config['encoder_cls'].rsplit('.', 1)
         module = importlib.import_module(name=module_str)
@@ -52,10 +56,11 @@ def init_transformer(encoder_config, cat_cols):
     return transformer_name, transformer
 
 def init_model(model_config):
+    
     if 'model' in model_config:
         model = model_config['model']
     elif inspect.isclass(model_config['model_cls']):
-        model = model_config['model_cls'](model_config.get('fargs', {}))
+        model = model_config['model_cls'](**model_config.get('fargs', {}))
     else:
         raise ValueError('model_cls is not class!!!')
 
@@ -105,7 +110,7 @@ def run_one_exp(exp, metric_configs):
                 X=exp['X'],
                 y=exp['y'],
                 cat_cols=exp['cat_cols'],
-                **metric['fargs']
+                **metric.get('fargs', {})
             )
             
         elif metric_name == 'shap':
@@ -127,3 +132,25 @@ def run_one_exp(exp, metric_configs):
             raise ValueError
 
         results['metrics'][metric_name] = metric_result
+    return results
+
+def load_configs(config):
+    if isinstance(config, str):
+        with open(config, 'r') as f:
+            config = json.load(f)
+    return config
+
+def run_exp(configs):
+    configs = {i: load_configs(j) for i, j in configs.items()}
+    experements = make_exp(
+        data_configs=configs['datas'],
+        encoder_configs=configs['encoders'], 
+        model_configs=configs['models']
+    )
+
+    exp_results = []
+
+    for exp in tqdm(experements):
+        exp_results.append(run_one_exp(exp, metric_configs=configs['metrics']))
+
+    return exp_results

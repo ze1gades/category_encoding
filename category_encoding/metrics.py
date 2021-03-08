@@ -7,7 +7,7 @@ def get_feature_importance(model, transformer, X, y, type='linear'):
     X = transformer.fit_transform(X, y)
     model.fit(X, y)
     features = X.columns
-    
+
     if type == 'linear':
         return {i: j for i, j in zip(features, np.abs(model.coef_).mean(axis=0).tolist())}
     elif type == 'tree':
@@ -16,6 +16,7 @@ def get_feature_importance(model, transformer, X, y, type='linear'):
         raise ValueError('Wrong type!!!')
 
 def get_shap_values(model, transformer, X, y):
+    print(model)
     X = transformer.fit_transform(X, y)
     model.fit(X, y)
     explainer = shap.Explainer(model)
