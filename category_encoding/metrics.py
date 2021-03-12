@@ -2,30 +2,44 @@ import numpy as np
 import shap
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
+from sklearn.base import clone
 
-def get_feature_importance(model, transformer, X, y, type='linear'):
-    X = transformer.fit_transform(X, y)
-    model.fit(X, y)
-    features = X.columns
+def get_feature_importances(model, feat_names, type='linear'):
 
     if type == 'linear':
-        return {i: j for i, j in zip(features, np.abs(model.coef_).mean(axis=0).tolist())}
+        result = np.abs(model.coef_).mean(axis=0).tolist()
     elif type == 'tree':
-        return {i: j for i, j in zip(features, model.feature_importances_)}
+        result = np.abs(model.feature_importances_)
     else:
         raise ValueError('Wrong type!!!')
 
-def get_shap_values(model, transformer, X, y):
-    print(model)
-    X = transformer.fit_transform(X, y)
-    model.fit(X, y)
-    explainer = shap.Explainer(model)
-    return explainer(X)
+    return {
+        'feature_importances': result, 
+        'orig_feat_names': feat_names[0],
+        'enc_feat_names': feat_names[1]
+    }
+
+def get_shap_values(model, transformer, X, feat_names, type='linear'):
+    X = transformer.transform(X)
+    if type == 'linear':
+        explainer = shap.LinearExplainer(model, X)
+        shap_values = np.abs(explainer.shap_values(X)).mean(axis=0)
+    elif type == 'tree':
+        explainer = shap.TreeExplainer(model)
+        shap_values = np.abs(explainer.shap_values(X)[1]).mean(axis=0)
+    else:
+        raise ValueError('Wrong type!!!')
+
+    return {
+        'shap': shap_values,
+        'orig_feat_names': feat_names[0],
+        'enc_feat_names': feat_names[1]
+    }
 
 def diff_metrics(model, transformer, X, y, cat_cols=[], metric='roc_auc', **fargs):
     pipeline = Pipeline([
-        ('transformer', transformer),
-        ('model', model)
+        ('transformer', clone(transformer)),
+        ('model', clone(model))
     ])
 
     result = {
