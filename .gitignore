@@ -1,3 +1,8 @@
  __pycache__/
  *.pyc
 test_lib.ipynb
+.vscode/
+category_encoding/default_datasets/__pycache__/load_datasets.cpython-38.pyc
+category_encoding/default_datasets/__pycache__/dataset_configs.cpython-38.pyc
+category_encoding/default_datasets/__pycache__/__init__.cpython-38.pyc
+data_test.ipynb

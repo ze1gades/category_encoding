@@ -2,30 +2,27 @@ import pandas as pd
 import importlib
 import inspect
 import json
+import os
 from joblib import Parallel, delayed
 from tqdm._tqdm import tqdm
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 from category_encoding import metrics
+import category_encoding.datasets as datasets
 
 
-def update_data_config(data_configs):
+def get_data(data_configs):
+    data = dict()
+    for config in data_configs:
+        if isinstance(config, str):
+            data[config] = getattr(datasets, config)('./')
+        else:
+            name = config.get('name', os.path.split(config['path'])[1])
+            config.pop('name', None)
+            data[name] = datasets.Dataset(**config)
+    return data
 
-    for data in data_configs:
-        if 'name' not in data:
-            if 'path' not in data:
-                raise ValueError('Wrong data config!!!')
-        
-        if ('X' not in data) and ('y' not in data):
-            if 'df' not in data:
-                if 'path' in data:
-                    data['df'] = pd.read_csv(data['path'])
-                else:
-                    raise ValueError('Wrong data config!!!')
-            data['X'] = data['df'].drop(columns=[data['target_col']])
-            data['y'] = data['df'][data['target_col']]
-
-def init_transformer(encoder_config, cat_cols, X, y):
+def init_transformer(encoder_config, data):
     
     if isinstance(encoder_config['encoder_cls'], str):
         module_str, cls_name = encoder_config['encoder_cls'].rsplit('.', 1)
@@ -34,7 +31,7 @@ def init_transformer(encoder_config, cat_cols, X, y):
     else:
         encoder_cls = encoder_config['encoder_cls']
 
-    encoder = encoder_cls(cols=cat_cols, **encoder_config.get('fargs', {}))
+    encoder = encoder_cls(cols=data.cat_cols, **encoder_config.get('fargs', {}))
     encoder_name = encoder.__class__.__name__
 
     if encoder_config.get('normalization', None) is None:
@@ -57,7 +54,7 @@ def init_transformer(encoder_config, cat_cols, X, y):
     else:
         raise ValueError
     
-    transformer.fit(X, y)
+    transformer.fit(data.X, data.y)
     enc_feat_names = transformer.named_steps['encoder'].get_feature_names()
     
     mapping = {}
@@ -83,21 +80,19 @@ def init_model(model_config, X, y):
     return model_name, model_type, model
 
 def make_exp(data_configs, encoder_configs, model_configs):
-    update_data_config(data_configs)
+    all_data = get_data(data_configs)
 
     exp_list = []
-    for data in data_configs:
+    for dataset, data in all_data.items():
         for encoder in tqdm(encoder_configs):
-            transformer_name, transformer, feat_names = init_transformer(encoder, data['cat_cols'], data['X'], data['y'])
-            X_enc = transformer.transform(data['X'])
+            transformer_name, transformer, feat_names = init_transformer(encoder, data)
+            X_enc = transformer.transform(data.X)
             for model in model_configs:
-                model_name, model_type, model = init_model(model, X_enc, data['y'])
+                model_name, model_type, model = init_model(model, X_enc, data.y)
 
                 exp_list.append({
-                    'X': data['X'],
-                    'y': data['y'],
-                    'cat_cols': data['cat_cols'],
-                    'data': data['name'],
+                    'data': data,
+                    'dataset': dataset,
                     'transformer': transformer,
                     'transformer_name': transformer_name,
                     'model': model,
@@ -110,7 +105,7 @@ def make_exp(data_configs, encoder_configs, model_configs):
 
 def run_one_exp(exp, metric_config):
     metric_result = {
-        'data': exp['data'],
+        'dataset': exp['dataset'],
         'model': exp['model_name'],
         'transformer': exp['transformer_name'],
     }
@@ -120,9 +115,7 @@ def run_one_exp(exp, metric_config):
         metric_result['metric'] = metrics.diff_metrics(
             model=exp['model'], 
             transformer=exp['transformer'], 
-            X=exp['X'],
-            y=exp['y'],
-            cat_cols=exp['cat_cols'],
+            data=exp['data'],
             **metric_config.get('fargs', {})
         )
         
@@ -130,7 +123,7 @@ def run_one_exp(exp, metric_config):
         metric_result['metric'] = metrics.get_shap_values(
             model=exp['model'], 
             transformer=exp['transformer'],
-            X=exp['X'],
+            data=exp['data'],
             feat_names=exp['feat_names'],
             type=exp['model_type']
         )
@@ -154,7 +147,7 @@ def load_configs(config):
 def run_exp(configs, n_jobs=-1):
     configs = {i: load_configs(j) for i, j in configs.items()}
     experements = make_exp(
-        data_configs=configs['datas'],
+        data_configs=configs['datasets'],
         encoder_configs=configs['encoders'], 
         model_configs=configs['models']
     )

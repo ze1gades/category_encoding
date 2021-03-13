@@ -10,6 +10,8 @@ def get_feature_importances(model, feat_names, type='linear'):
         result = np.abs(model.coef_).mean(axis=0).tolist()
     elif type == 'tree':
         result = np.abs(model.feature_importances_)
+    elif type == 'kernel':
+        result = None
     else:
         raise ValueError('Wrong type!!!')
 
@@ -19,14 +21,20 @@ def get_feature_importances(model, feat_names, type='linear'):
         'enc_feat_names': feat_names[1]
     }
 
-def get_shap_values(model, transformer, X, feat_names, type='linear'):
-    X = transformer.transform(X)
+def get_shap_values(model, transformer, data, feat_names, type='linear'):
+    X = transformer.transform(data.X)
     if type == 'linear':
         explainer = shap.LinearExplainer(model, X)
         shap_values = np.abs(explainer.shap_values(X)).mean(axis=0)
     elif type == 'tree':
         explainer = shap.TreeExplainer(model)
-        shap_values = np.abs(explainer.shap_values(X)[1]).mean(axis=0)
+        shap_values = np.abs(explainer.shap_values(X))
+        if isinstance(shap_values, list):
+            shap_values = shap_values[1]
+        shap_values = shap_values.mean(axis=0)
+    elif type == 'kernel':
+        explainer = shap.KernelExplainer(model, X)
+        shap_values = np.abs(explainer.shap_values(X)).mean(axis=0)
     else:
         raise ValueError('Wrong type!!!')
 
@@ -36,16 +44,16 @@ def get_shap_values(model, transformer, X, feat_names, type='linear'):
         'enc_feat_names': feat_names[1]
     }
 
-def diff_metrics(model, transformer, X, y, cat_cols=[], metric='roc_auc', **fargs):
+def diff_metrics(model, transformer, data, metric='roc_auc', **fargs):
     pipeline = Pipeline([
         ('transformer', clone(transformer)),
         ('model', clone(model))
     ])
 
     result = {
-        'without_cat_cols': cross_val_score(model, X.drop(columns=cat_cols), y, scoring=metric, **fargs),
-        'just_cat_cols': cross_val_score(pipeline, X[cat_cols], y, scoring=metric, **fargs),
-        'with_cat_cols': cross_val_score(pipeline, X, y, scoring=metric, **fargs)
+        'without_cat_cols': cross_val_score(model, data.X.drop(columns=data.cat_cols), data.y, scoring=metric, **fargs),
+        'just_cat_cols': cross_val_score(pipeline, data.X[data.cat_cols], data.y, scoring=metric, **fargs),
+        'with_cat_cols': cross_val_score(pipeline, data.X, data.y, scoring=metric, **fargs)
     }
 
     result['add_cat_improve'] = result['with_cat_cols'] / result['without_cat_cols'] - 1
