@@ -3,20 +3,34 @@ import os
 import time
 from tqdm._tqdm import tqdm
 
+def process_metrics(metrics):
+    data_frames = dict()
+
+    for metric in metrics:
+        df = pd.DataFrame(metric['result'])
+        df['model'] = metric['model_name']
+
+        metric_name = metric['metric_name']
+        if metric_name in data_frames:
+            data_frames[metric_name] = data_frames[metric_name].append(df)
+        else:
+            data_frames[metric_name] = df
+    return data_frames
+
 def to_pandas(results):
-    df = dict()
-    for res_name, result in results.items():
-        df[res_name] = pd.DataFrame(columns=['dataset', 'transformer', 'model'] + list(result[0]['metric'].keys()))
-        
-        for res in tqdm(result):
-            _df = pd.DataFrame(columns=df[res_name].columns)
-            for metric_name, metric in res['metric'].items():
-                _df[metric_name] = metric
-            _df['dataset'] = res['dataset']
-            _df['transformer'] = res['transformer']
-            _df['model'] = res['model']
-            df[res_name] = df[res_name].append(_df)
-    return df
+    data_frames = dict()
+    
+    for res in results:
+        dfs = process_metrics(res['metrics'])
+        for metric, df in dfs.items():
+            df['dataset'] = res['dataset']
+            df['transformer'] = res['transformer']
+            if metric in data_frames:
+                data_frames[metric] = data_frames[metric].append(df)
+            else:
+                data_frames[metric] = df 
+
+    return data_frames
 
 def save(df_dict, path):
     ts = int(time.time())

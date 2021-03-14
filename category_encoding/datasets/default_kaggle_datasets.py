@@ -91,7 +91,7 @@ class KickedDataset(KaggleDataset):
     def preprocessing(self, df):
         str_cols = CONFIGS[self.__class__.__name__]['str_cols']
         df[str_cols] = df[str_cols].fillna('NoData')
-        df = df.fillna(-1)
+        df = df.fillna(-1.)
         df[str_cols] = OrdinalEncoder(dtype=int).fit_transform(df[str_cols])
 
         return df

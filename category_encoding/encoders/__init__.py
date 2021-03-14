@@ -17,3 +17,4 @@ from category_encoders import (
     TargetEncoder,
     WOEEncoder
 )
+from .utilst import init_transformer
