@@ -1,1 +1,2 @@
-from .tables import to_pandas, save
+from .utils import to_pandas
+from .tables import Table

@@ -43,7 +43,7 @@ class TelcoDataset(KaggleDataset):
         return pd.read_csv(path, index_col=0)
 
     def preprocessing(self, df):
-        df = df.replace({'TotalCharges': {' ': '0'}})
+        df['TotalCharges'] = df['TotalCharges'].replace({' ': '0'}).astype(float)
 
         str_cols = CONFIGS[self.__class__.__name__]['str_cols']
         df[str_cols] = OrdinalEncoder(dtype=int).fit_transform(df[str_cols])

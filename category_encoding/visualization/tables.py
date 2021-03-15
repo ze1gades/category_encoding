@@ -1,46 +1,35 @@
 import pandas as pd
 import os
+import glob
 import time
 from tqdm._tqdm import tqdm
+from .utils import to_pandas
 
-def process_metrics(metrics):
-    data_frames = dict()
-
-    for metric in metrics:
-        df = pd.DataFrame(metric['result'])
-        df['model'] = metric['model_name']
-
-        metric_name = metric['metric_name']
-        if metric_name in data_frames:
-            data_frames[metric_name] = data_frames[metric_name].append(df)
+class Table:
+    def __init__(self, results=None, path=None):
+        if results is None:
+            if path is None:
+                raise ValueError
+            results_list = glob.glob(os.path.join(path, '*.csv'))
+            self.results = {os.path.split(i)[1][:-4]: pd.read_csv(i) for i in results_list}
         else:
-            data_frames[metric_name] = df
-    return data_frames
+            self.results = to_pandas(results)
 
-def to_pandas(results):
-    data_frames = dict()
-    
-    for res in results:
-        dfs = process_metrics(res['metrics'])
-        for metric, df in dfs.items():
-            df['dataset'] = res['dataset']
-            df['transformer'] = res['transformer']
-            if metric in data_frames:
-                data_frames[metric] = data_frames[metric].append(df)
-            else:
-                data_frames[metric] = df 
+    def save(self, path):
+        ts = int(time.time())
+        res_dir = 'res_{}'.format(ts)
+        path = os.path.join(path, res_dir)
+        os.makedirs(path)
 
-    return data_frames
+        for name, df in self.results.items():
+            df.to_csv(os.path.join(path, '{}.csv'.format(name)), index=False)
+        
+        return path
 
-def save(df_dict, path):
-    ts = int(time.time())
-    res_dir = 'res_{}'.format(ts)
-    path = os.path.join(path, res_dir)
-    os.makedirs(path)
+    def to_markdown(self):
+        pass
 
-    for name, df in df_dict.items():
-        df.to_csv(os.path.join(path, '{}.csv'.format(name)), index=False)
-    
-    return path
+    def to_latex(self):
+        pass
 
         
