@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+import re
 
 
 def process_metrics(metrics):
@@ -29,3 +31,21 @@ def to_pandas(results):
                 data_frames[metric] = df 
 
     return data_frames
+
+def chain(*iterables):
+    res = []
+    for i in iterables:
+        if isinstance(i, (list, tuple)):
+            res = res + list(i)
+        else:
+            res.append(i)
+    return res
+
+def to_latex(df, caption, maximize):
+    df = df.round(4)
+    for col in df.columns:
+        extr = df[col].max() if maximize else df[col].min()
+        df[col] = np.where(df[col] == extr, '\\textbf{{{:.4f}}}'.format(extr), df[col]).astype(str)
+    s = df.to_latex(escape=False, caption=caption, column_format='|l|' + 'l|' * len(df.columns))
+    s = re.sub(r'([_^])', r'\\\1', s)
+    return s.replace("\\\n", "\\ \hline\n")

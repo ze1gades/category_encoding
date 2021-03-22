@@ -10,3 +10,5 @@ category_encoding/encoders/__pycache__/
 category_encoding/experements/__pycache__/
 category_encoding/metrics/__pycache__/
 category_encoding/visualization/__pycache__/
+analyze.ipynb
+genetic_test.ipynb
