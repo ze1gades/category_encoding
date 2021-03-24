@@ -1,5 +1,6 @@
 import numpy as np
 import shap
+from timeit import default_timer as timer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.base import clone
@@ -83,4 +84,40 @@ class CrossVal(Metric):
         result['add_cat_improve'] = result['with_cat_cols'] / result['without_cat_cols'] - 1
         result['add_non_cat_improve'] = result['with_cat_cols'] / result['just_cat_cols'] - 1
 
+        return result
+
+class ExecutionTime(Metric):
+    def __init__(self, model, data, transformer, n_execution=1, **kwargs):
+        super(ExecutionTime, self).__init__(model, data)
+        self.transformer = transformer
+        self.n_execution = n_execution
+
+    def compute(self):
+        result = {
+            'transformer_fit_time': list(),
+            'model_fit_time': list(),
+            'transformer_apply_time': list(),
+            'model_apply_time': list()
+        }
+
+        for _ in range(self.n_execution):
+            transformer = clone(self.transformer)
+            model = clone(self.model)
+
+            start_time = timer()
+            transformer.fit(self.data.X, self.data.y)
+            result['transformer_fit_time'].append(timer() - start_time)
+
+            start_time = timer()
+            X_enc = transformer.transform(self.data.X)
+            result['transformer_apply_time'].append(timer() - start_time)
+
+            start_time = timer()
+            model.fit(X_enc, self.data.y)
+            result['model_fit_time'].append(timer() - start_time)
+
+            start_time = timer()
+            model.predict_proba(X_enc)
+            result['model_apply_time'].append(timer() - start_time)
+        
         return result

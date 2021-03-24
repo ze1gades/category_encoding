@@ -9,7 +9,7 @@ def make_exp(data, transformer, configs):
     for model_config in configs['model']:
         model_name, model_type, model = init_model(model_config, data)
         for metric_name in configs['metric']:
-            metric_fargs = None
+            metric_fargs = {}
             if not isinstance(metric_name, str):
                 metric_name, metric_fargs = metric_name
 
@@ -19,7 +19,7 @@ def make_exp(data, transformer, configs):
                 model=model,
                 transformer=transformer,
                 model_type=model_type,
-                cv_kwargs=metric_fargs
+                **metric_fargs
             )
             exps.append({
                 'model_name': model_name,

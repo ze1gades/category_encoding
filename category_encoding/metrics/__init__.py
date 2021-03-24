@@ -1,1 +1,1 @@
-from .metrics import FeatureImportances, ShapValues, CrossVal
+from .metrics import FeatureImportances, ShapValues, CrossVal, ExecutionTime
