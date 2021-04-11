@@ -101,23 +101,32 @@ class ExecutionTime(Metric):
         }
 
         for _ in range(self.n_execution):
-            transformer = clone(self.transformer)
-            model = clone(self.model)
+            step_result = self.get_one_step_timings()
 
-            start_time = timer()
-            transformer.fit(self.data.X, self.data.y)
-            result['transformer_fit_time'].append(timer() - start_time)
+            for time_name, time in step_result.items():
+                result[time_name].append(time)
 
-            start_time = timer()
-            X_enc = transformer.transform(self.data.X)
-            result['transformer_apply_time'].append(timer() - start_time)
+        return result
 
-            start_time = timer()
-            model.fit(X_enc, self.data.y)
-            result['model_fit_time'].append(timer() - start_time)
+    def get_one_step_timings(self):
+        result = dict()
+        transformer = clone(self.transformer)
+        model = clone(self.model)
 
-            start_time = timer()
-            model.predict_proba(X_enc)
-            result['model_apply_time'].append(timer() - start_time)
-        
+        start_time = timer()
+        transformer.fit(self.data.X, self.data.y)
+        result['transformer_fit_time'] = timer() - start_time
+
+        start_time = timer()
+        X_enc = transformer.transform(self.data.X)
+        result['transformer_apply_time'] = timer() - start_time
+
+        start_time = timer()
+        model.fit(X_enc, self.data.y)
+        result['model_fit_time'] = timer() - start_time
+
+        start_time = timer()
+        model.predict_proba(X_enc)
+        result['model_apply_time'] = timer() - start_time
+
         return result

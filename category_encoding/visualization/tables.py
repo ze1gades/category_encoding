@@ -65,8 +65,3 @@ class Table:
 
     def to_markdown(self):
         pass
-
-    def to_latex(self, t, caption):
-        pass
-
-        

@@ -1,6 +1,22 @@
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 import importlib
+import pandas as pd
+
+def get_obj_cols(df):
+    """
+    Returns names of 'object' columns in the DataFrame.
+    """
+    obj_cols = []
+    for idx, dt in enumerate(df.dtypes):
+        if dt == 'object' or is_category(dt):
+            obj_cols.append(df.columns.values[idx])
+
+    return obj_cols
+
+
+def is_category(dtype):
+    return pd.api.types.is_categorical_dtype(dtype)
 
 def get_orig_feats(feat_names, enc_feat_names):
     orig_feat_names = []
