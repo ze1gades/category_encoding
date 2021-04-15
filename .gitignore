@@ -1,12 +1,5 @@
- */__pycache__/
- *.pyc
- .ipynb_checkpoints
+**/__pycache__/
+*.pyc
+.ipynb_checkpoints
 .vscode/
-category_encoding/default_datasets/__pycache__/
-category_encoding/__pycache__/
-category_encoding/datasets/__pycache__/
-category_encoding/encoders/__pycache__/
-category_encoding/experements/__pycache__/
-category_encoding/metrics/__pycache__/
-category_encoding/visualization/__pycache__/
 *.ipynb
