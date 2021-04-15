@@ -1,7 +1,6 @@
  */__pycache__/
  *.pyc
  .ipynb_checkpoints
- *.ipynb
 .vscode/
 category_encoding/default_datasets/__pycache__/
 category_encoding/__pycache__/
@@ -10,4 +9,4 @@ category_encoding/encoders/__pycache__/
 category_encoding/experements/__pycache__/
 category_encoding/metrics/__pycache__/
 category_encoding/visualization/__pycache__/
-category_encoding/encoders/encoders.py
+*.ipynb
