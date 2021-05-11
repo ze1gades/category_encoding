@@ -18,6 +18,7 @@ class RFEncoder(BaseEstimator, TransformerMixin):
         max_subsets=None,
         max_depth=3,
         n_estimators=100,
+        min_count=1,
         n_jobs=1
     ):
         self.cols = cols
@@ -29,6 +30,7 @@ class RFEncoder(BaseEstimator, TransformerMixin):
         self.max_depth = max_depth
         self.n_estimators = n_estimators
         self.n_jobs = n_jobs
+        self.min_count = min_count
 
     def fit(self, X, y=None):
         self._dim = X.shape[1]
@@ -72,7 +74,7 @@ class RFEncoder(BaseEstimator, TransformerMixin):
             forest = RandomForestClassifier(
                 max_depth=max_depth, 
                 n_estimators=self.n_estimators, 
-                n_jobs=self.n_jobs
+                n_jobs=self.n_jobs,
             )
 
             forest.fit(X[values.columns], y)
@@ -94,8 +96,12 @@ class RFEncoder(BaseEstimator, TransformerMixin):
         subset_sizes = np.asarray(decision_path[0].sum(axis=0))[0]
         subsets = decision_path[0][:, subset_sizes != 1].toarray()
 
-        subsets, freq = np.unique(subsets, return_counts=True, axis=1)
-        subsets = subsets[:, np.argsort(-freq)]
+        subsets, count = np.unique(subsets, return_counts=True, axis=1)
+
+        subsets = subsets[:, count >= self.min_count]
+        count = count[count >= self.min_count]
+
+        subsets = subsets[:, np.argsort(-count)]
 
         subset_sizes = subsets.sum(axis=0)
         subsets = subsets[:, np.argsort(subset_sizes)]

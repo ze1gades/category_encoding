@@ -2,6 +2,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.pipeline import Pipeline
 import importlib
 import pandas as pd
+import numpy as np
 
 def get_obj_cols(df):
     """
@@ -65,3 +66,6 @@ def init_transformer(encoder_config, data):
     data.orig_feat_names = get_orig_feats(data.X.columns, data.enc_feat_names)
 
     return transformer_name, transformer
+
+def entropy(x):
+    return np.where(x == 0, 0, x * np.log(x))
